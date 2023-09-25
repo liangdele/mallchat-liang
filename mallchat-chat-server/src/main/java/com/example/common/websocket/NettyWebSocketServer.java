@@ -1,5 +1,6 @@
 package com.example.common.websocket;
 
+import com.example.common.websocket.service.MyHeaderCollectHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -80,6 +81,7 @@ public class NettyWebSocketServer {
                         pipeline.addLast(new HttpObjectAggregator(8192));
                         //保存用户ip
 //                        pipeline.addLast(new HttpHeadersHandler());
+                        pipeline.addLast(new MyHeaderCollectHandler());
                         /**
                          * 说明：
                          *  1. 对于 WebSocket，它的数据是以帧frame 的形式传递的；
@@ -89,6 +91,7 @@ public class NettyWebSocketServer {
                          *      是通过一个状态码 101 来切换的
                          */
                         pipeline.addLast(new WebSocketServerProtocolHandler("/"));
+//                        pipeline.addLast(new MyHeaderCollectHandler());
                         // 自定义handler ，处理业务逻辑
                         pipeline.addLast(new NettyWebSocketServerHandler());
                     }

@@ -1,5 +1,6 @@
 package com.example.common.user.controller;
 
+import com.example.common.user.service.impl.WXMsgServiceImpl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
@@ -29,6 +30,8 @@ public class WxPortalController {
 
     @Autowired
     private WxMpService wxMpService;
+    @Autowired
+    private WXMsgServiceImpl wxMsgService;
 
     @GetMapping("/test")
     public String getQrCode(@RequestParam Integer code) throws WxErrorException {
@@ -64,9 +67,11 @@ public class WxPortalController {
     @GetMapping("/callBack")
     public RedirectView callBack(@RequestParam String code) throws WxErrorException {
         WxOAuth2AccessToken accessToken = wxMpService.getOAuth2Service().getAccessToken(code);
-        WxOAuth2UserInfo userInfo = wxMpService.getOAuth2Service().getUserInfo(accessToken,"zh_CN");
-        System.out.println(userInfo);
-        return null;
+        WxOAuth2UserInfo userInfo = wxMpService.getOAuth2Service().getUserInfo(accessToken, "zh_CN");
+        wxMsgService.authorize(userInfo);
+        RedirectView redirectView = new RedirectView();
+        redirectView.setUrl("www.mallchat.com");
+        return redirectView;
     }
 
     @PostMapping(produces = "application/xml; charset=UTF-8")

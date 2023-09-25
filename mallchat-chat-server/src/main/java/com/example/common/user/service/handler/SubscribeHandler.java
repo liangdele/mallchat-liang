@@ -1,5 +1,6 @@
 package com.example.common.user.service.handler;
 
+import com.example.common.user.service.adapter.TextBuilder;
 import me.chanjar.weixin.common.error.WxErrorException;
 import me.chanjar.weixin.common.session.WxSessionManager;
 import me.chanjar.weixin.mp.api.WxMpService;
@@ -36,7 +37,7 @@ public class SubscribeHandler extends AbstractHandler {
         }
 
         try {
-//            return new TextBuilder().build("感谢关注", wxMessage, weixinService);
+            return new TextBuilder().build("感谢关注", wxMessage);
         } catch (Exception e) {
             this.logger.error(e.getMessage(), e);
         }

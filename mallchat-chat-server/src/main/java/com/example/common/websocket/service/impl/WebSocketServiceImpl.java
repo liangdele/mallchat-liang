@@ -2,6 +2,10 @@ package com.example.common.websocket.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.example.common.user.dao.UserDao;
+import com.example.common.user.domain.entity.User;
+import com.example.common.user.service.impl.LoginServiceImpl;
+import com.example.common.user.service.impl.UserServiceImpl;
 import com.example.common.websocket.domain.dto.WSChannelExtraDTO;
 import com.example.common.websocket.domain.enums.WSRespTypeEnum;
 import com.example.common.websocket.domain.vo.req.WSBaseReq;
@@ -17,6 +21,7 @@ import lombok.SneakyThrows;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.result.WxMpQrCodeTicket;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -29,7 +34,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class WebSocketServiceImpl implements WebSocketService {
     @Autowired
+    private UserDao userDao;
+    @Autowired
+    @Lazy
     private WxMpService wxMpService;
+    @Autowired
+    private LoginServiceImpl loginService;
 
     /**
      * 管理所有用户的连接，包含登录态和游客
@@ -66,6 +76,52 @@ public class WebSocketServiceImpl implements WebSocketService {
     public void remove(Channel channel) {
         ONLINE_WS_MAP.remove(channel);
         //todo 用户下线等
+    }
+
+    @Override
+    public void scanLoginSuccess(Integer code, Long uid) {
+        //确认链接在机器上
+        Channel channel = WAIT_LOGIN_MAP.getIfPresent(code);
+        if (Objects.isNull(channel)) {
+            return;
+        }
+        User user = userDao.getById(uid);
+        //移除code
+        WAIT_LOGIN_MAP.invalidate(code);
+        //调用登录模块获取token
+        String token=loginService.login(uid);
+        //用户登录
+        loginSuccess(channel,user,token);
+    }
+
+    @Override
+    public void waitAuthorize(Integer code) {
+        Channel channel = WAIT_LOGIN_MAP.getIfPresent(code);
+        if(Objects.isNull(channel)){
+            return;
+        }
+        sendMsg(channel,WebSocketAdapter.buildWaitAuthorizeResp());
+    }
+
+    @Override
+    public void authorize(Channel channel, String token) {
+        Long uid = loginService.getValidUid(token);
+        if(Objects.nonNull(uid)){
+            User user = userDao.getById(uid);
+            loginSuccess(channel,user,token);
+
+        }else{
+            sendMsg(channel,WebSocketAdapter.buildInvalidTokenResp());
+        }
+    }
+
+    private void loginSuccess(Channel channel, User user, String token) {
+        //保存channel的对应uid
+        WSChannelExtraDTO wsChannelExtraDTO = ONLINE_WS_MAP.get(channel);
+        wsChannelExtraDTO.setUid(user.getId());
+        //toto 用户上线成功的事件
+        //推送成功消息
+        sendMsg(channel,WebSocketAdapter.buildResp(user,token));
     }
 
     private void sendMsg(Channel channel, WSBaseResp<?> resp) {
