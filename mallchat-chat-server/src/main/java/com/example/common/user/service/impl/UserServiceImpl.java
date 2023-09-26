@@ -1,5 +1,6 @@
 package com.example.common.user.service.impl;
 
+import com.example.common.common.annotation.RedissonLock;
 import com.example.common.common.utils.AssertUtil;
 import com.example.common.user.dao.ItemConfigDao;
 import com.example.common.user.domain.entity.ItemConfig;
@@ -48,6 +49,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @RedissonLock(key = "#uid")
     public void modifyName(Long uid, String name) {
         User oldUser = userDao.getByName(name);
         AssertUtil.isEmpty(oldUser, "用户名已存在,请换一个试试");

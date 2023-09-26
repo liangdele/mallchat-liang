@@ -46,7 +46,7 @@ public class DaoTest {
 
     @Test
     public void acquireItem() {
-        iUserBackpackService.acquireItem(11000L, ItemEnum.PLANET.getId(), IdempotentEnum.UID, "11000");
+        iUserBackpackService.acquireItem(11000L, ItemEnum.REG_TOP100_BADGE.getId(), IdempotentEnum.UID, "11000");
     }
 
     @Test
