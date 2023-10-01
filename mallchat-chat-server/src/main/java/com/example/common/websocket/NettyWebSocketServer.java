@@ -1,6 +1,5 @@
 package com.example.common.websocket;
 
-import com.example.common.websocket.service.MyHeaderCollectHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;

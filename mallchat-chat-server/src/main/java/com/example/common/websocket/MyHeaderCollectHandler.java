@@ -1,4 +1,4 @@
-package com.example.common.websocket.service;
+package com.example.common.websocket;
 
 import cn.hutool.core.net.url.UrlBuilder;
 import com.example.common.websocket.NettyUtil;
@@ -6,7 +6,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
+import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 
+import java.net.InetSocketAddress;
 import java.util.Optional;
 
 /**
@@ -61,6 +64,17 @@ public class MyHeaderCollectHandler extends ChannelInboundHandlerAdapter {
             //如果token存在
             tokenOptional.ifPresent(s -> NettyUtil.setAttr(ctx.channel(), NettyUtil.TOKEN, s));
             request.setUri(urlBuilder.getPath().toString());
+            //取用户id
+            String ip = request.headers().get("X-Real-IP");//nginx代理
+            if (StringUtils.isBlank(ip)) {
+                InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
+                ip = address.getAddress().getHostAddress();
+            }
+
+            //保存到channel附件中
+            NettyUtil.setAttr(ctx.channel(), NettyUtil.IP, ip);
+            //处理器只需要用一次，所以移除
+            ctx.pipeline().remove(this);
         }
         ctx.fireChannelRead(msg);
     }

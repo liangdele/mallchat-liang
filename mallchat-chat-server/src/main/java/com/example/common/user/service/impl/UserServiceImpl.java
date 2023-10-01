@@ -1,6 +1,7 @@
 package com.example.common.user.service.impl;
 
 import com.example.common.common.annotation.RedissonLock;
+import com.example.common.common.event.UserRegisterEvent;
 import com.example.common.common.utils.AssertUtil;
 import com.example.common.user.dao.ItemConfigDao;
 import com.example.common.user.domain.entity.ItemConfig;
@@ -16,6 +17,7 @@ import com.example.common.user.service.UserService;
 import com.example.common.user.service.adapter.UserAdapter;
 import com.example.common.user.service.cache.ItemCache;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,12 +34,16 @@ public class UserServiceImpl implements UserService {
     private ItemCache itemCache;
     @Autowired
     private ItemConfigDao itemConfigDao;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
-    public void register(User user) {
+    public Long register(User user) {
         userDao.save(user);
         //TODO:用户注册事件
+        applicationEventPublisher.publishEvent(new UserRegisterEvent(this, user));
+        return user.getId();
     }
 
     @Override

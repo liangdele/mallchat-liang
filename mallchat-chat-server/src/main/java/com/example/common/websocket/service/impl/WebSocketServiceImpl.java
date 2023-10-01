@@ -2,10 +2,13 @@ package com.example.common.websocket.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
+import com.example.common.common.event.UserOnlineEvent;
 import com.example.common.user.dao.UserDao;
+import com.example.common.user.domain.entity.IpInfo;
 import com.example.common.user.domain.entity.User;
 import com.example.common.user.service.impl.LoginServiceImpl;
 import com.example.common.user.service.impl.UserServiceImpl;
+import com.example.common.websocket.NettyUtil;
 import com.example.common.websocket.domain.dto.WSChannelExtraDTO;
 import com.example.common.websocket.domain.enums.WSRespTypeEnum;
 import com.example.common.websocket.domain.vo.req.WSBaseReq;
@@ -18,13 +21,17 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.SneakyThrows;
+import lombok.val;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.result.WxMpQrCodeTicket;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,7 +47,8 @@ public class WebSocketServiceImpl implements WebSocketService {
     private WxMpService wxMpService;
     @Autowired
     private LoginServiceImpl loginService;
-
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
     /**
      * 管理所有用户的连接，包含登录态和游客
      */
@@ -89,29 +97,29 @@ public class WebSocketServiceImpl implements WebSocketService {
         //移除code
         WAIT_LOGIN_MAP.invalidate(code);
         //调用登录模块获取token
-        String token=loginService.login(uid);
+        String token = loginService.login(uid);
         //用户登录
-        loginSuccess(channel,user,token);
+        loginSuccess(channel, user, token);
     }
 
     @Override
     public void waitAuthorize(Integer code) {
         Channel channel = WAIT_LOGIN_MAP.getIfPresent(code);
-        if(Objects.isNull(channel)){
+        if (Objects.isNull(channel)) {
             return;
         }
-        sendMsg(channel,WebSocketAdapter.buildWaitAuthorizeResp());
+        sendMsg(channel, WebSocketAdapter.buildWaitAuthorizeResp());
     }
 
     @Override
     public void authorize(Channel channel, String token) {
         Long uid = loginService.getValidUid(token);
-        if(Objects.nonNull(uid)){
+        if (Objects.nonNull(uid)) {
             User user = userDao.getById(uid);
-            loginSuccess(channel,user,token);
+            loginSuccess(channel, user, token);
 
-        }else{
-            sendMsg(channel,WebSocketAdapter.buildInvalidTokenResp());
+        } else {
+            sendMsg(channel, WebSocketAdapter.buildInvalidTokenResp());
         }
     }
 
@@ -119,9 +127,12 @@ public class WebSocketServiceImpl implements WebSocketService {
         //保存channel的对应uid
         WSChannelExtraDTO wsChannelExtraDTO = ONLINE_WS_MAP.get(channel);
         wsChannelExtraDTO.setUid(user.getId());
-        //toto 用户上线成功的事件
         //推送成功消息
-        sendMsg(channel,WebSocketAdapter.buildResp(user,token));
+        sendMsg(channel, WebSocketAdapter.buildResp(user, token));
+        //用户上线成功的事件
+        user.setLastOptTime(new Date());
+        user.refreshIp(NettyUtil.getAttr(channel, NettyUtil.IP));
+        applicationEventPublisher.publishEvent(new UserOnlineEvent(this, user));
     }
 
     private void sendMsg(Channel channel, WSBaseResp<?> resp) {
