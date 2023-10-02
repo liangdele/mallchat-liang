@@ -1,11 +1,13 @@
 package com.example.common.user.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
-public class IpDetails implements Serializable {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class IpDetail implements Serializable {
     private String ip;
     private String isp;//运营商
     private String isp_id;//运营商id

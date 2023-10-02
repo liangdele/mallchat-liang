@@ -1,12 +1,16 @@
 package com.example.common.user.controller;
 
 
+import com.example.common.common.utils.AssertUtil;
+import com.example.common.user.domain.enums.RoletEnum;
+import com.example.common.user.domain.vo.req.BlackReq;
 import com.example.common.user.domain.vo.req.ModifyNameReq;
 import com.example.common.common.domain.vo.resp.ApiResult;
 import com.example.common.common.utils.RequestHolder;
 import com.example.common.user.domain.vo.req.WearingBadgeReq;
 import com.example.common.user.domain.vo.resp.BadgeResp;
 import com.example.common.user.domain.vo.resp.UserInfoResp;
+import com.example.common.user.service.IRoleService;
 import com.example.common.user.service.UserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -22,6 +26,8 @@ import java.util.List;
 public class UserController {
     @Autowired
     private UserService userService;
+    @Autowired
+    private IRoleService roleService;
 
     @GetMapping("/userInfo")
     @ApiOperation("获取用户信息")
@@ -46,6 +52,16 @@ public class UserController {
     @ApiOperation("佩戴徽章")
     public ApiResult<Void> wearingBadge(@Valid @RequestBody WearingBadgeReq req) {
         userService.wearingBadge(RequestHolder.get().getUid(), req.getItemId());
+        return ApiResult.success();
+    }
+
+    @PutMapping("/black")
+    @ApiOperation("拉黑用户")
+    public ApiResult<Void> black(@Valid @RequestBody BlackReq req) {
+        final Long uid = RequestHolder.get().getUid();
+        final boolean hasPower = roleService.hasPower(uid, RoletEnum.ADMIN);
+        AssertUtil.isTrue(hasPower, "抹茶管理员没有权限");
+        userService.black(req);
         return ApiResult.success();
     }
 }

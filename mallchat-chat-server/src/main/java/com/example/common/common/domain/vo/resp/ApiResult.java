@@ -1,6 +1,8 @@
 package com.example.common.common.domain.vo.resp;
 
 import com.example.common.common.exception.ErrorEnum;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -12,6 +14,7 @@ import lombok.Data;
  */
 @Data
 @ApiModel("基础返回体")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ApiResult<T> {
     @ApiModelProperty("成功标识true or false")
     private Boolean success;

@@ -13,9 +13,9 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.Attribute;
-import io.netty.util.AttributeKey;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
     private WebSocketService webSocketService;
 
@@ -60,7 +60,7 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) throws Exception {
         String text = msg.text();
-        WSBaseReq wsBaseReq = JSONUtil.toBean(text, WSBaseReq.class);
+        WSBaseReq<T> wsBaseReq = JSONUtil.toBean(text, WSBaseReq.class);
         switch (WSReqTypeEnum.of(wsBaseReq.getType())) {
             case AUTHORIZE:
                 webSocketService.authorize(ctx.channel(),wsBaseReq.getData());
@@ -70,5 +70,11 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
             case LOGIN:
                 webSocketService.handleLoginReq(ctx.channel());
         }
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("NettyWebSocketServerHandler error", cause);
+        super.exceptionCaught(ctx, cause);
     }
 }

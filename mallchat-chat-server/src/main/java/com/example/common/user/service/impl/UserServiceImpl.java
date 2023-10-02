@@ -1,27 +1,31 @@
 package com.example.common.user.service.impl;
 
 import com.example.common.common.annotation.RedissonLock;
+import com.example.common.common.event.UserBlackEvent;
 import com.example.common.common.event.UserRegisterEvent;
 import com.example.common.common.utils.AssertUtil;
+import com.example.common.user.dao.BlackDao;
 import com.example.common.user.dao.ItemConfigDao;
-import com.example.common.user.domain.entity.ItemConfig;
-import com.example.common.user.domain.entity.UserBackpack;
+import com.example.common.user.domain.entity.*;
+import com.example.common.user.domain.enums.BlackTypeEnum;
 import com.example.common.user.domain.enums.ItemEnum;
 import com.example.common.user.dao.UserBackpackDao;
 import com.example.common.user.dao.UserDao;
-import com.example.common.user.domain.entity.User;
 import com.example.common.user.domain.enums.ItemTypeEnum;
+import com.example.common.user.domain.vo.req.BlackReq;
 import com.example.common.user.domain.vo.resp.BadgeResp;
 import com.example.common.user.domain.vo.resp.UserInfoResp;
 import com.example.common.user.service.UserService;
 import com.example.common.user.service.adapter.UserAdapter;
 import com.example.common.user.service.cache.ItemCache;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +40,8 @@ public class UserServiceImpl implements UserService {
     private ItemConfigDao itemConfigDao;
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private BlackDao blackDao;
 
     @Override
     @Transactional
@@ -89,5 +95,33 @@ public class UserServiceImpl implements UserService {
         ItemConfig itemConfig = itemConfigDao.getById(firstValidItem.getItemId());
         AssertUtil.equal(itemConfig.getType(), ItemTypeEnum.BADGE.getType(), "该物品不是徽章");
         userDao.wearingBadge(uid, itemId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void black(BlackReq req) {
+        final Long uid = req.getUid();
+        Black insert = new Black();
+        insert.setType(BlackTypeEnum.UID.getType());
+        insert.setTarget(uid.toString());
+        blackDao.save(insert);
+        final User user = userDao.getById(uid);
+        blackIp(Optional.ofNullable(user).map(User::getIpInfo).map(IpInfo::getCreateIp).orElse(null));
+        blackIp(Optional.ofNullable(user).map(User::getIpInfo).map(IpInfo::getUpdateIp).orElse(null));
+        applicationEventPublisher.publishEvent(new UserBlackEvent(this, user));
+    }
+
+    private void blackIp(String ip) {
+        if (StringUtils.isBlank(ip)) {
+            return;
+        }
+        try {
+            Black insert = new Black();
+            insert.setType(BlackTypeEnum.UID.getType());
+            insert.setTarget(ip);
+            blackDao.save(insert);
+        } catch (Exception e) {
+            //ignore
+        }
     }
 }

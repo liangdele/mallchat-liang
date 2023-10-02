@@ -23,7 +23,7 @@ public enum ItemTypeEnum {
     private final Integer type;
     private final String desc;
 
-    private static Map<Integer, ItemTypeEnum> cache;
+    private static final Map<Integer, ItemTypeEnum> cache;
 
     static {
         cache = Arrays.stream(ItemTypeEnum.values()).collect(Collectors.toMap(ItemTypeEnum::getType, Function.identity()));

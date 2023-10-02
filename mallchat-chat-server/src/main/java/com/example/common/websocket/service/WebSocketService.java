@@ -1,5 +1,7 @@
 package com.example.common.websocket.service;
 
+import com.example.common.websocket.domain.vo.req.WSBaseReq;
+import com.example.common.websocket.domain.vo.resp.WSBaseResp;
 import io.netty.channel.Channel;
 
 public interface WebSocketService {
@@ -14,4 +16,6 @@ public interface WebSocketService {
     void waitAuthorize(Integer code);
 
     void authorize(Channel channel, String data);
+
+    void sendMsgToAll(WSBaseResp<?> wsBaseResp);
 }
